@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+* @Copyright(c): 厦门路桥信息股份有限公司  版权所有
+* @author : Administrator
+* @date: 2018年6月1日
+-->
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <title>角色维护</title>
+    <link rel="stylesheet" href="/static/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/static/dist/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="/static/dist/css/ionicons.min.css"/>
+    <link rel="stylesheet" href="/static/css/common.css"/>
+    <link rel="stylesheet" href="/static/plugins/bootstrap-table/dist/bootstrap-table.min.css"/>
+    <link rel="stylesheet" href="/static/plugins/bootstrap-toggle/bootstrap-toggle.min.css"/>
+</head>
+<body>
+<div class="container-fluid" >
+    <div id="toolbar" class="btn-group" >
+        <button id="btn_add" type="button" class="btn btn-default btn-primary">
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>新增
+        </button>
+        <button id="btn_edit" type="button" class="btn btn-default btn-warning">
+            <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>修改
+        </button>
+        <button id="btn_delete" type="button" class="btn btn-default btn-danger">
+            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>删除
+        </button>
+    </div>
+    <table id="dataList"></table>
+</div>
+<div class="modal fade" id="addModal" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h4 class="modal-title">用户管理</h4>
+            </div>
+            <div class="modal-body" style="overflow: hidden; padding: 10px;">
+                <form class="form-horizontal" id="inputForm">
+                    <input type="hidden" name="id"/>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label"><i style="color:red;">*</i>&nbsp;登录名:</label>
+                                <div class="col-sm-8">
+                                    <input type="text" class="form-control" name="loginName" value="" />
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label"><i style="color:red;">*</i>&nbsp;姓名:</label>
+                                <div class="col-sm-8">
+                                    <input type="text" class="form-control" name="name" value=""/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">密码:</label>
+                                <div class="col-sm-8">
+                                    <input type="password" class="form-control" name="password" value=""/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label"><i style="color:red;">*</i>&nbsp;邮箱:</label>
+                                <div class="col-sm-8">
+                                    <input type="text" class="form-control" name="email" value=""/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label"><i style="color:red;">*</i>&nbsp;是否启用:</label>
+                                <div class="col-sm-8">
+                                    <select name="isValid" class="form-control">
+                                        <option value="1" >是</option>
+                                        <option value="2" >否</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-sm-4 control-label">手机:</label>
+                                <div class="col-sm-8">
+                                    <input type="text" class="form-control" name="mobile" value=""/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button id="btnSubmit" type="button" onclick="doSave(this)" class="btn btn-primary">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script src="/static/plugins/jQuery/jquery-2.2.3.min.js"></script>
+<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+<script src="/static/js/common.js"></script>
+<script src="/static/plugins/bootstrap-validator/js/bootstrapValidator.min.js"></script>
+<script src="/static/plugins/bootstrap-table/dist/bootstrap-table.min.js"></script>
+<script src="/static/plugins/bootstrap-table/dist/locale/bootstrap-table-zh-CN.min.js"></script>
+<script src="/static/plugins/bootstrap-toggle/bootstrap-toggle.min.js"></script>
+<script src="/static/plugins/attention/zDialog/zDrag.js"></script>
+<script src="/static/plugins/attention/zDialog/zDialog.js"></script>
+<script th:inline="javascript" type="text/javascript">
+    /*<![CDATA[*/
+    var CTX = [[@{/}]];
+        $(function () {
+
+            //1.初始化Table
+            var oTable = new TableInit();
+            oTable.Init();
+
+            //2.初始化Button的点击事件
+            var oButtonInit = new ButtonInit();
+            oButtonInit.Init();
+
+            //3.初始化表单验证
+            $('#inputForm').bootstrapValidator({
+                message: '此处输入有误',
+                excluded: [':disabled'],
+                feedbackIcons: {
+                    valid: 'glyphicon glyphicon-ok',
+                    invalid: 'glyphicon glyphicon-remove',
+                    validating: 'glyphicon glyphicon-refresh'
+                },
+                fields:{
+                    'loginName':{
+                        message: '登录名输入不合法',
+                        validators: {
+                            notEmpty: {
+                                message: '登录名不可为空'
+                            },
+                            stringLength: {
+                                max: 20,
+                                message: '登录名长度必须在20个字内'
+                            }
+                        }
+                    },
+                    'name':{
+                        message: '姓名输入不合法',
+                        validators: {
+                            notEmpty: {
+                                message: '姓名不可为空'
+                            },
+                            stringLength: {
+                                max: 50,
+                                message: '姓名长度必须在50个字内'
+                            }
+                        }
+                    },
+                    'email':{
+                        message: '邮箱地址输入不合法',
+                        validators: {
+                            notEmpty: {
+                                message: '邮箱地址不可为空'
+                            },
+                            stringLength: {
+                                max: 50,
+                                message: '邮箱地址长度必须在50个字内'
+                            },
+                            regexp:{
+                                regexp: /^[A-Za-z0-9\u4e00-\u9fa5]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/,
+                                message: '请输入正确的邮箱地址'
+                            }
+                        }
+                    },
+                    'mobile':{
+                        message: '手机号码输入不合法',
+                        validators: {
+                            notEmpty: {
+                                message: '手机号码不可为空'
+                            },
+                            regexp:{
+                                regexp: /^(13[0-9]|14[579]|15[0-3,5-9]|16[6]|17[0135678]|18[0-9]|19[89])\d{8}$/,
+                                message: '手机号码不正确'
+                            }
+                        }
+                    },
+                    'password':{
+                        message: '密码输入不合法',
+                        validators: {
+                            notEmpty: {
+                                message: '密码不可为空'
+                            },
+                            stringLength: {
+                                max: 50,
+                                message: '密码长度必须在50个字内'
+                            }
+                        }
+                    }
+                }
+            });
+            $('#addModal').on('hidden.bs.modal',function(){
+                $('#inputForm').bootstrapValidator('resetForm', true);
+                $("input[name='id']").val('');
+                $("input[name='isValid']").val('');
+                document.getElementById("inputForm").reset();
+            });
+        });
+
+        //初始化按钮
+        var ButtonInit = function () {
+            var oInit = new Object();
+            var postdata = {};
+
+            oInit.Init = function () {
+                //初始化页面上面的按钮事件
+            };
+            return oInit;
+        };
+
+
+        //初始化列表
+        var TableInit = function () {
+            var oTableInit = new Object();
+            //初始化Table
+            oTableInit.Init = function () {
+                $('#dataList').bootstrapTable({
+                    url: CTX + 'user/query/page',         //请求后台的URL（*）
+                    method: 'get',                      //请求方式（*）
+                    toolbar: '#toolbar',                //工具按钮用哪个容器
+                    striped: true,                      //是否显示行间隔色
+                    cache: false,                       //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+                    pagination: true,                   //是否显示分页（*）
+                    sortable: true,                     //是否启用排序
+                    sortOrder: "asc",                   //排序方式
+                    queryParams: oTableInit.queryParams,//传递参数（*）
+                    sidePagination: "server",           //分页方式：client客户端分页，server服务端分页（*）
+                    pageNumber:1,                       //初始化加载第一页，默认第一页
+                    pageSize: 10,                       //每页的记录行数（*）
+                    pageList: [10, 25, 50, 100],        //可供选择的每页的行数（*）
+                    queryParamsType: "a",
+                    search: true,                       //是否显示表格搜索
+                    searchOnEnterKey: true,				//按回车触发搜索方法，否则自动触发搜索方法。
+                    strictSearch: false,
+                    showColumns: true,                  //是否显示所有的列
+                    showRefresh: true,                  //是否显示刷新按钮
+                    minimumCountColumns: 2,             //最少允许的列数
+                    clickToSelect: true,                //是否启用点击选中行
+                    uniqueId: "id",                     //每一行的唯一标识，一般为主键列
+                    showToggle:true,                    //是否显示详细视图和列表视图的切换按钮
+                    cardView: false,                    //是否显示详细视图
+                    detailView: false,                  //是否显示父子表
+                    columns: [
+                        {
+                            checkbox:true
+                        },{
+                            field: 'loginName',
+                            title:'登录名'
+                        },{
+                            field: 'name',
+                            title:'用户姓名'
+                        },{
+                            field: 'email',
+                            title:'邮箱'
+                        },{
+                            field: 'createTime',
+                            title:'创建时间',
+                            formatter: function(value,row,index){
+                                return getDateTimeStr(new Date(value));
+                            }
+                        },{
+                            field: 'mobile',
+                            title:'手机号码'
+                        },{
+                            field: 'isValid',
+                            title:'状态',
+                            formatter: function(value, row, index){
+                                var checked =  row.isValid == 1 ? 'checked' : '';
+                                return '<input type="checkbox" class="status" '+checked+' value="'+row.id+'" data-toggle="toggle" data-on="启用" data-off="停用"/>';
+                            }
+                        }
+                    ],
+                    onLoadSuccess: function(){  //加载成功时执行
+                        $('input[type=checkbox].status').change(function() {
+                            var id = $(this).val();
+                            var status = $(this).prop('checked');
+                            doChangeStatus(id,status ? 1 : 2);
+                        })
+                        $('input[type=checkbox].status').bootstrapToggle();
+                    }
+                });
+            };
+
+            //得到查询的参数
+            oTableInit.queryParams = function (params) {
+                var temp = {   						//这里的键的名字和控制器的变量名必须一致，这边改动，控制器也需要改成一样的
+                    page: params.pageNumber - 1,	//页码params.offset
+                    size: params.pageSize,  		//页面大小params.limit
+                    searchText: params.searchText
+                };
+                return temp;
+            };
+            return oTableInit;
+        };
+
+
+        //查询-刷新
+        var queryInfo = function(){
+            $('#dataList').bootstrapTable('refresh',{pageNumber:1,pageSize:10});
+        }
+
+        //按钮事件绑定
+        $('#toolbar button').on('click',function(){
+            //新增
+            if($(this).attr('id')=='btn_add'){
+                $('#addModal').find('.modal-title').html('新增信息');
+                $('#addModal').modal('toggle');
+            }
+            //编辑
+            if($(this).attr('id')=='btn_edit'){
+                doEdit();
+            }
+            //删除
+            if($(this).attr('id')=='btn_delete'){
+                doDelete();
+            }
+        });
+
+        //编辑
+        var doEdit = function(){
+
+            var seldatas = $('#dataList').bootstrapTable('getSelections');
+            if(seldatas.length<=0){
+                alert('请选择一项来编辑');
+                return;
+            }
+            if(seldatas.length>1){
+                alert('只会编辑所选的第一项');
+            }
+            var selData = seldatas[0]
+            $('#addModal').find('.modal-title').html('编辑信息');
+            $('#addModal').modal('toggle');
+            $.ajax({
+                url:CTX+'workitem/' + selData.id,
+                type:'GET',
+                dataType:'json',
+                success:function(json){
+                    if(json){
+                        $('#inputForm').find("input[name='id']").val(json.id);
+                        $('#inputForm').find("input[name='name']").val(json.name);
+                        $('#inputForm').find("input[name='title']").val(json.title);
+                        $('#inputForm').find("input[name='description']").val(json.description);
+                        $('#inputForm').find("input[name='icon']").val(json.icon);
+                        $('#inputForm').find("select[name='type']").val(json.type);
+                        $('#inputForm').find("select[name='status']").val(json.status);
+                        $('#inputForm').find("input[name='url']").val(json.url);
+                        $('#inputForm').find("input[name='procdefId']").val(json.procdefId);
+                    }
+                },
+                error:function(){
+                    alert('请求超时或系统出错!');
+                }
+            });
+        }
+
+        //保存表单
+        function doSave(_this){
+            var result = $('#inputForm').data('bootstrapValidator');
+            result.validate();
+            if(result.isValid()){
+                $(_this).attr('disabled','disabled');
+                $(_this).text('保存中...');
+                $.ajax({
+                    url:CTX+'/user',
+                    method:'POST',
+                    dataType:'json',
+                    data:$("#inputForm").serialize(),
+                    timeout:10000,
+                    success:function(json){
+                        if(json.status){
+                            $('#addModal').modal('toggle');
+                            queryInfo();
+                        }else{
+                            alert(json.msg);
+                        }
+                        $(_this).removeAttr('disabled');
+                        $(_this).text('保存');
+                    },
+                    error:function(){
+                        alert('请求超时或系统出错!');
+                        $(_this).removeAttr('disabled');
+                        $(_this).text('保存');
+                    }
+                });
+            }
+        }
+
+        //删除
+        var doDelete = function(){
+            var seldatas = $('#dataList').bootstrapTable('getSelections');
+            if(seldatas.length<=0){
+                alert('未选择删除项');
+                return;
+            }else{
+                if(window.confirm('确定要删除所选项吗?')){
+                    loading('正在删除,请稍后...');
+                    var ids = [];
+                    $.each(seldatas,function(i,seldata){
+                        ids.push(seldata.id);
+                    });
+                    $.ajax({
+                        url:CTX+'workitem',
+                        type:'DELETE',
+                        data:JSON.stringify(ids),
+                        dataType:'json',
+                        processData : false,
+                        contentType : "application/json;charset=UTF-8",
+                        success:function(json){
+                            loaded();
+                            if(json.success){
+                                alert(json.msg);
+                                queryInfo();
+                            }else{
+                                alert(json.msg);
+                            }
+                        },
+                        error:function(){
+                            alert('请求超时或系统出错!');
+                            loaded();
+                        }
+                    });
+                }
+            }
+        }
+
+        //选择图标
+        function doSelectIcon() {
+            top.returnData = null;
+            var title;
+            var url = "/static/demo/icons-select.html";
+            var dlg = top.Dialog ? new top.Dialog() : new Dialog();//定义Dialog对象
+            dlg.Model = true;
+            dlg.Drag = false;
+            dlg.Width = 1100;//定义长度
+            dlg.Height =700;
+            dlg.URL = url;
+            dlg.Title = "请选择合适的图标";
+            dlg.CancelEvent = function() {
+                if (top.returnData) {
+                    if (top.returnData) {
+                        var $form = $('#inputForm');
+                        var iconClass = $form.find("input[name='icon']");
+                        if (iconClass && iconClass.length) {
+                            iconClass.val(top.returnData);
+                        }
+                        $form.data('bootstrapValidator').revalidateField("icon");
+                    }
+                }
+                dlg.close();
+            }
+            dlg.show();
+        }
+
+    /*]]>*/
+</script>
+</html>

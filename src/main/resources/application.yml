@@ -1,0 +1,44 @@
+server:
+  port: 9090
+  tomcat:
+    uri-encoding: UTF-8
+  context-path: /${spring.application.name}
+spring:
+  application:
+      name: security
+  thymeleaf:
+    cache: false
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/security?useUnicode=true&characterEncoding=UTF-8
+    username: root
+    password: gmmsxmrbi
+    driver-class-name: com.mysql.jdbc.Driver
+    tomcat:
+      initial-size: 10
+      max-idle: 20
+      min-idle: 5
+      max-active: 50
+      remove-abandoned: true
+      remove-abandoned-timeout: 180
+      max-wait: 1000
+      test-while-idle: true
+      validation-query: select 1 from dual
+      test-on-borrow: true
+      min-evictable-idle-time-millis: 3600000
+      time-between-eviction-runs-millis: 3600000
+  session:
+    store-type: none
+  jpa:
+     database: MYSQL
+     show-sql: true
+     hibernate:
+       ddl-auto: update
+       naming:
+         strategy: org.hibernate.cfg.ImprovedNamingStrategy
+     open-in-view: true
+     properties:
+       hibernate:
+         dialect: org.hibernate.dialect.MySQL5Dialect
+security:
+  basic:
+    enabled: false

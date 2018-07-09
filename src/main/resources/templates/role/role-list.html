@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+* @Copyright(c): 厦门路桥信息股份有限公司  版权所有
+* @author : Administrator
+* @date: 2018年6月1日
+-->
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <title>角色维护</title>
+    <link rel="stylesheet" href="/static/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/static/dist/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="/static/dist/css/ionicons.min.css"/>
+    <link rel="stylesheet" href="/static/css/common.css"/>
+    <link rel="stylesheet" href="/static/plugins/bootstrap-table/dist/bootstrap-table.min.css"/>
+    <link rel="stylesheet" href="/static/plugins/bootstrap-toggle/bootstrap-toggle.min.css"/>
+    <link rel="stylesheet" href="/static/plugins/bootstrap-treeview/bootstrap-treeview.min.css"/>
+    <style type="text/css">
+        .container{
+            margin: 5px;
+        }
+        .tab-content{
+            overflow: visible;
+        }
+        .text-center{
+            text-align: center;
+        }
+        .btn-add{
+            margin: 5px auto;
+        }
+        .input-group{
+            width: 100%;
+        }
+        .input-group-addon{
+            width: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-4">
+                <ul class="nav nav-tabs">
+                    <li class="active">
+                        <a href="#identifier" data-toggle="tab">角色</a>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade in active" id="home">
+                        <input type="button" class="btn btn-primary btn-add" value="新建" onclick="addOrEditRoleGroup()"/>
+                        <div id="tree" data-toggle="context" data-target="#context-menu">
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <table id="dataList"></table>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="inputModal" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h4 class="modal-title">角色管理</h4>
+                </div>
+                <div class="modal-body" style="overflow: hidden; padding: 10px;">
+                    <form class="form-horizontal" id="inputForm">
+                        <input type="hidden" name="id"/>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <div class="input-group">
+                                    <span class="input-group-addon">角色名（英文）</span>
+                                    <input class="form-control" id="name" name="name" type="text" placeholder="角色名称不能超过32个字" title="姓名" autocomplete="off" value="" data-bv-field="name"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <div class="input-group">
+                                    <span class="input-group-addon">名称（中文）:</span>
+                                    <input class="form-control" id="remark" name="remark" type="text" placeholder="备注不能超过32个字" title="备注" autocomplete="off" value="" data-bv-field="remark"/>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                    <button type="button" onclick="doSave(this)" class="btn btn-primary">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="context-menu">
+        <ul class="dropdown-menu" role="menu">
+            <li>
+                <a tabindex="1" href="#" onclick="addRole()">
+                    <i class="glyphicon glyphicon-plus"></i>
+                    新增角色
+                </a>
+            </li>
+            <li>
+                <a tabindex="2" href="#" onclick="editRole()">
+                    <i class="glyphicon glyphicon-pencil"></i>
+                    编辑角色
+                </a>
+            </li>
+            <li>
+                <a tabindex="3" href="#" onclick="delRole()">
+                    <i class="glyphicon glyphicon-trash"></i>
+                    删除角色
+                </a>
+            </li>
+        </ul>
+    </div>
+</body>
+<script src="/static/plugins/jQuery/jquery-2.2.3.min.js"></script>
+<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+<script src="/static/js/common.js"></script>
+<script src="/static/plugins/bootstrap-validator/js/bootstrapValidator.min.js"></script>
+<script src="/static/plugins/bootstrap-table/dist/bootstrap-table.min.js"></script>
+<script src="/static/plugins/bootstrap-table/dist/locale/bootstrap-table-zh-CN.min.js"></script>
+<script src="/static/plugins/bootstrap-toggle/bootstrap-toggle.min.js"></script>
+<script src="/static/plugins/attention/zDialog/zDrag.js"></script>
+<script src="/static/plugins/attention/zDialog/zDialog.js"></script>
+<script src="/static/plugins/bootstrap-treeview/bootstrap-treeview.js"></script>
+<script src="/static/plugins/bootstrap-contextmenu/bootstrap-contextmenu.js"></script>
+<script th:inline="javascript" type="text/javascript">
+    /*<![CDATA[*/
+    var CTX = [[@{/}]];
+
+    var currentNode;
+
+    $(function () {
+            fnInitRoleTree();
+            //1.初始化Table
+            var oTable = new TableInit();
+            oTable.Init();
+
+            //2.初始化Button的点击事件
+            var oButtonInit = new ButtonInit();
+            oButtonInit.Init();
+        });
+
+        //初始化按钮
+        var ButtonInit = function () {
+            var oInit = new Object();
+            var postdata = {};
+
+            oInit.Init = function () {
+                //初始化页面上面的按钮事件
+            };
+            return oInit;
+        };
+
+
+        //初始化列表
+        var TableInit = function () {
+            var oTableInit = new Object();
+            //初始化Table
+            oTableInit.Init = function () {
+                $('#dataList').bootstrapTable({
+                    url: CTX + '/role/page',         //请求后台的URL（*）
+                    method: 'get',                      //请求方式（*）
+                    toolbar: '#toolbar',                //工具按钮用哪个容器
+                    striped: true,                      //是否显示行间隔色
+                    cache: false,                       //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+                    pagination: true,                   //是否显示分页（*）
+                    sortable: true,                     //是否启用排序
+                    sortOrder: "asc",                   //排序方式
+                    queryParams: oTableInit.queryParams,//传递参数（*）
+                    sidePagination: "server",           //分页方式：client客户端分页，server服务端分页（*）
+                    pageNumber:1,                       //初始化加载第一页，默认第一页
+                    pageSize: 10,                       //每页的记录行数（*）
+                    pageList: [10, 25, 50, 100],        //可供选择的每页的行数（*）
+                    queryParamsType: "a",
+                    search: true,                       //是否显示表格搜索
+                    searchOnEnterKey: true,				//按回车触发搜索方法，否则自动触发搜索方法。
+                    strictSearch: false,
+                    showColumns: true,                  //是否显示所有的列
+                    showRefresh: true,                  //是否显示刷新按钮
+                    minimumCountColumns: 2,             //最少允许的列数
+                    clickToSelect: true,                //是否启用点击选中行
+                    uniqueId: "id",                     //每一行的唯一标识，一般为主键列
+                    showToggle:true,                    //是否显示详细视图和列表视图的切换按钮
+                    cardView: false,                    //是否显示详细视图
+                    detailView: false,                  //是否显示父子表
+                    columns: [
+                        {
+                            checkbox:true
+                        },{
+                            field: 'loginName',
+                            title:'登录名'
+                        },{
+                            field: 'name',
+                            title:'用户姓名'
+                        },{
+                            field: 'email',
+                            title:'邮箱'
+                        },{
+                            field: 'createTime',
+                            title:'创建时间',
+                            formatter: function(value,row,index){
+                                return getDateTimeStr(new Date(value));
+                            }
+                        },{
+                            field: 'mobile',
+                            title:'手机号码'
+                        },{
+                            field: 'isValid',
+                            title:'状态',
+                            formatter: function(value, row, index){
+                                var checked =  row.isValid == 1 ? 'checked' : '';
+                                return '<input type="checkbox" class="status" '+checked+' value="'+row.id+'" data-toggle="toggle" data-on="启用" data-off="停用"/>';
+                            }
+                        }
+                    ],
+                    onLoadSuccess: function(){  //加载成功时执行
+                        $('input[type=checkbox].status').change(function() {
+                            var id = $(this).val();
+                            var status = $(this).prop('checked');
+                            doChangeStatus(id,status ? 1 : 2);
+                        })
+                        $('input[type=checkbox].status').bootstrapToggle();
+                    }
+                });
+            };
+
+            //得到查询的参数
+            oTableInit.queryParams = function (params) {
+                var temp = {   						//这里的键的名字和控制器的变量名必须一致，这边改动，控制器也需要改成一样的
+                    page: params.pageNumber - 1,	//页码params.offset
+                    size: params.pageSize,  		//页面大小params.limit
+                    searchText: params.searchText
+                };
+                return temp;
+            };
+            return oTableInit;
+        };
+
+
+        //查询-刷新
+        var queryInfo = function(){
+            $('#dataList').bootstrapTable('refresh',{pageNumber:1,pageSize:10});
+        }
+
+        function fnInitRoleTree(){
+            $.ajax({
+                url:CTX+'/role/tree',
+                type:'GET',
+                dataType:'json',
+                success:function(json){
+                    if(json){
+                        $('#tree').treeview({
+                            data: json,         // data is not optional
+                            levels: 5
+                        });
+                        $('#tree').contextmenu({
+                            before: function(e, context) {
+                                var nodeId = e.target.getAttribute("data-nodeid");
+                                var node = $('#tree').treeview('getNode', nodeId);
+                                currentNode = node;
+                            },
+                            onItem: function(context, e) {
+                                var index = e.target.getAttribute("tabindex");
+                            }
+                        });
+                    }
+                },
+                error:function(){
+                    alert('请求超时或系统出错!');
+                }
+            });
+        }
+        //添加角色
+        function addRole(){
+            if(currentNode) {
+                $('#inputModal').modal('toggle')
+            }
+        }
+
+        //编辑角色
+        function editRole(){
+            if(currentNode) {
+                $('#inputModal').modal('toggle')
+            }
+        }
+
+        //删除角色
+        function delRole(){
+
+        }
+
+        //删除角色
+        function doSave(){
+            var data = {
+                name:$('#inputForm').find('input[name=name]').val(),
+                remark: $('#inputForm').find('input[name=remark]').val(),
+                'parent.id': currentNode.id
+            }
+            $.ajax({
+                url:CTX+'/role',
+                type:'POST',
+                dataType:'json',
+                data: data,
+                success:function(json){
+                    if(json && json.status){
+                        fnInitRoleTree();
+                        $('#inputModal').modal('toggle');
+                    }
+                },
+                error:function(){
+                    alert('请求超时或系统出错!');
+                }
+            });
+        }
+    /*]]>*/
+</script>
+</html>

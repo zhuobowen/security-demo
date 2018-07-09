@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport"
+	content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SpringSecurity演示</title>
+<script type="text/javascript">
+	var CTX = "/workflow";
+</script>
+<link rel="stylesheet" href="/static/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="/static/dist/css/font-awesome.min.css">
+<link rel="stylesheet" href="/static/dist/css/ionicons.min.css">
+<link rel="stylesheet" href="/static/css/common.css">
+<link rel="stylesheet" href="/static/dist/css/bootstrap-addtabs.css">
+<link rel="stylesheet" href="/static/dist/css/AdminLTE.css">
+<link rel="stylesheet" href="/static/dist/css/skins/_all-skins.min.css">
+<link rel="stylesheet" href="/static/css/index.css">
+<style type="text/css">
+	.work-item-btn {
+		margin:5px;
+	}
+	.work-item-btn:hover{
+		background-color: #38ADFF;
+	}
+	.work-item-btn .fa{
+		margin-right:5px;
+	}
+</style>
+</head>
+<body class="hold-transition skin-blue sidebar-mini">
+	<div class="wrapper ">
+		<aside class="main-sidebar">
+			<section class="sidebar">
+				<ul class="sidebar-menu">
+					<li class="header"><i class="glyphicon glyphicon-th"></i> <span>安全框架演示</span>
+					</li>
+					<li class="treeview">
+						<a href="#"> 
+							<i class="fa fa-folder"></i>
+							<span>组织架构</span>
+						</a>
+						<ul class="treeview-menu">
+							<li><a url="security/user" id='menu_url_1'
+								title='用户管理' class='treeViewLink'> <i class="fa fa-user-plus"></i>
+									用户管理
+							</a></li>
+							<li><a url="security/role" id='menu_url_2'
+								   title='角色管理' class='treeViewLink'> <i class="fa fa-user-plus"></i>
+								角色管理
+							</a></li>
+						</ul>
+					</li>
+				</ul>
+			</section>
+		</aside>
+		<div class="content-wrapper">
+			<div class="col-md-12" style="padding: 0 2px">
+				<div id="tabs">
+					<ul class="nav nav-tabs" role="tablist">
+						<header class="main-header">
+							<a href="#" class="sidebar-toggle" data-toggle="offcanvas"
+								role="button" style="color: #777"></a>
+						</header>
+					</ul>
+					<div class="tab-content">
+						
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="addModal" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+				 	<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+					<h4 class="modal-title">选择事务项目</h4>
+				</div>
+				<div class="modal-body" style="overflow: hidden; padding: 10px;text-align: left;">
+					
+				</div>
+			</div>
+		</div>
+	</div>
+	<script src="/static/plugins/jQuery/jquery-2.2.3.min.js"></script>
+	<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+	<script src="/static/js/common.js"></script>
+	<script src="/static/plugins/attention/zDialog/zDrag.js"></script>
+	<script src="/static/plugins/attention/zDialog/zDialog.js"></script>
+	<script src="/static/dist/js/bootstrap-addtabs.js"></script>
+	<script src="/static/dist/js/app.min.js"></script>
+	<script src="/static/dist/js/demo.js"></script>
+	<script src="/static/dist/js/jquery.tips.js"></script>
+	<script src="/static/plugins/attention/zDialog/zDrag.js"></script>
+	<script src="/static/plugins/attention/zDialog/zDialog.js"></script>
+	<script type="text/javascript">
+		$(function() {
+			$('#tabs').addtabs({
+				monitor : '.topbar'
+			});
+			$(document).on(
+				"click",
+				".treeViewLink",
+			function(evt) {
+				var id = $(this).attr('id');
+				Addtabs.add({
+					id : $(this).attr('id'),
+					title : function(ele) {
+						var title = $(ele).attr('title') ? $(ele).attr(
+								'title') : $(ele).html();
+						if (title) {
+							var li = $(ele).find("i.glyphicon:first");
+							if (li.length) {
+								title = li[0].outerHTML + title;
+							}
+						}
+						return title;
+					}(this),
+					url : $(this).attr('url')
+				})
+				$(".iframeClass").css("height",
+				$(".content-wrapper").height() * 0.91);
+			});
+		})
+		
+		function fnOpenWin(){
+			$.ajax({
+				url: 'workflow/workitem/page',
+				dataType:'json',
+				data:{page:0,size:2147483647},
+				success:function(json) {
+					if(json && json.rows){
+						var items = json.rows;
+						var appendStr = '';
+						for (var i = 0 ; i < items.length; i++) {
+							var item = items[i];
+							appendStr += '<button class="btn work-item-btn" onclick="fnOpenFrame(\''+item.id+'\',\''+item.title+'\',\''+item.url+'\')"><i class="'+item.icon+'"></i>'+item.title+'</button>';
+						}
+						$('.modal-body').html(appendStr);
+						$('#addModal').modal('toggle');
+					}else{
+						
+					}
+				}
+			})
+		}
+		
+		//打开Frame
+		function fnOpenFrame(id,title,url){
+			$('#tabs').addtabs({
+				monitor : '.topbar'
+			});
+			Addtabs.add({
+				id : id,
+				title : function(ele) {
+					return title;
+				}(this),
+				url : url
+			})
+			$('#addModal').modal('toggle');
+			$(".iframeClass").css("height",
+			$(".content-wrapper").height() * 0.91);
+		}
+		
+		//关闭窗口
+		function fnCloseWin(id){
+			$("#tab_tab_" + id).remove();
+		    $("#tab_" + id).remove();
+  			alert("保存成功")
+		}
+	</script>
+</body>
+</html>
